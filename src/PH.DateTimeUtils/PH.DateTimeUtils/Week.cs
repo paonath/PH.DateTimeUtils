@@ -78,11 +78,38 @@ namespace PH.DateTimeUtils
 
         /// <summary>Returns the fully qualified type name of this instance.</summary>
         /// <returns>The fully qualified type name.</returns>
-        public override string ToString() => $"Week {_week}/{_year} - From '{_utcStart:yyyy-MM-dd}' To '{_utcEnd:yyyy-MM-dd}'";
+        public override string ToString() => $"Week {_week}-{_year} - From '{_utcStart:yyyy-MM-dd}' To '{_utcEnd:yyyy-MM-dd}'";
 
         
 
-        
+        public string ToString(string format)
+        {
+            if (format == "S")
+            {
+                var w = $"{_week}".PadLeft(2, '0');
+                return $"{w}-{_year} ({_utcStart:yyyy-MM-dd} ~ {_utcEnd:yyyy-MM-dd})";
+            }
+
+            if (format == "s")
+            {
+                return $"{_week}-{_year}";
+            }
+
+            if (format == "i")
+            {
+                return $"{_year}-{_week}";
+            }
+
+            if (format == "I")
+            {
+                var w = $"{_week}".PadLeft(2, '0');
+                return $"{_year}-{w}";
+            }
+
+            return ToString();
+        }
+
+
 
         /// <summary>
         /// Gets the current <see cref="Week"/>.
