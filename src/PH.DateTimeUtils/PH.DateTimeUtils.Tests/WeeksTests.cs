@@ -4,6 +4,22 @@ namespace PH.DateTimeUtils.Tests
     public class WeekTest
     {
         [Fact]
+        public void FormatString()
+        {
+            var first2023 = new Week(1, 2023);
+
+            var s = first2023.ToString("s");
+            var l = first2023.ToString("S");
+            var i = first2023.ToString("i");
+            var lo = first2023.ToString("I");
+
+            Assert.Equal("1-2023", s);
+            Assert.Equal("2023-1", i);
+            Assert.Equal("2023-01", lo);
+            Assert.Equal("01-2023 (2023-01-02 ~ 2023-01-08)", l);
+        }
+
+        [Fact]
         public void InvalidDataThrowException()
         {
             Exception? e0 = null;
