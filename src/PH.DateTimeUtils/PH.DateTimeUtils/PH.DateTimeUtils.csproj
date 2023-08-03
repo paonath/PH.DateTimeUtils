@@ -11,13 +11,13 @@
     
     <Description>Utility related to Date and Times</Description>
     <PackageReleaseNotes>
-      
+      Better way to calculate
     </PackageReleaseNotes>
 
     
     <PackageTags>week</PackageTags>
 
-    <PackageVersion>0.0.1</PackageVersion>
+    <PackageVersion>0.0.2</PackageVersion>
    
 
     <Authors>Paolo Innocenti</Authors>

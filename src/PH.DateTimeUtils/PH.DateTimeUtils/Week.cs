@@ -22,6 +22,18 @@ namespace PH.DateTimeUtils
         public DateTime Start  => _utcStart;
         public DateTime End    => _utcEnd;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Week"/> struct.
+        /// </summary>
+        /// <param name="week">The week.</param>
+        /// <param name="year">The year.</param>
+        /// <param name="utcStart">The UTC start.</param>
+        /// <param name="utcEnd">The UTC end.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// week - Provide value between 1 and 53
+        /// or
+        /// year - Provide value between 1 and 9999
+        /// </exception>
         public Week(int week, int year, DateTime utcStart, DateTime utcEnd)
         {
             if (week <= 0 || week > 53)
@@ -39,6 +51,19 @@ namespace PH.DateTimeUtils
             _utcEnd   = utcEnd;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Week"/> struct.
+        /// </summary>
+        /// <param name="week">The week.</param>
+        /// <param name="year">The year.</param>
+        /// <param name="culture">The culture.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// week - Provide value between 1 and 53
+        /// or
+        /// year - Provide value between 1 and 9999
+        /// or
+        /// week - The year {year} does not have {weekNumber} weeks
+        /// </exception>
         public Week(int week, int year, CultureInfo culture = null)
         {
             if (week <= 0 || week > 53)
@@ -61,7 +86,7 @@ namespace PH.DateTimeUtils
         /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
         /// <param name="other">An object to compare with this object.</param>
         /// <returns>true if the current object is equal to the <paramref name="other">other</paramref> parameter; otherwise, false.</returns>
-        public bool Equals(Week other) => _week == other._week && _year == other._year;
+        public bool Equals(Week other) => _week == other._week && _year == other._year && _utcStart == other._utcStart && _utcEnd == other._utcEnd;
 
         /// <summary>Indicates whether this instance and a specified object are equal.</summary>
         /// <param name="obj">The object to compare with the current instance.</param>
@@ -76,17 +101,30 @@ namespace PH.DateTimeUtils
 
         }
 
-        /// <summary>Returns the fully qualified type name of this instance.</summary>
-        /// <returns>The fully qualified type name.</returns>
-        public override string ToString() => $"Week {_week}-{_year} - From '{_utcStart:yyyy-MM-dd}' To '{_utcEnd:yyyy-MM-dd}'";
+        /// <summary>Returns the string representation of this instance.</summary>
+        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
+        public override string ToString() => ToString("F");
 
-        
 
+        /// <summary>
+        /// Converts to string.
+        /// </summary>
+        /// <param name="format">The format.</param>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
         public string ToString(string format)
         {
+            var w = $"{_week}".PadLeft(2, '0');
+
+            if (format == "F")
+            {
+                return $"Week {_week}-{_year} - From '{_utcStart:yyyy-MM-dd}' To '{_utcEnd:yyyy-MM-dd}'";
+            }
+
             if (format == "S")
             {
-                var w = $"{_week}".PadLeft(2, '0');
+                
                 return $"{w}-{_year} ({_utcStart:yyyy-MM-dd} ~ {_utcEnd:yyyy-MM-dd})";
             }
 
@@ -102,7 +140,6 @@ namespace PH.DateTimeUtils
 
             if (format == "I")
             {
-                var w = $"{_week}".PadLeft(2, '0');
                 return $"{_year}-{w}";
             }
 
@@ -127,18 +164,33 @@ namespace PH.DateTimeUtils
         /// <returns></returns>
         public static Week FromDateTime(DateTime dateTime, CultureInfo culture = null)
         {
-            if (null == culture)
-            {
-                culture = CultureInfo.CurrentCulture;
-            }
-
-            var dfi = culture.DateTimeFormat;
-            var cal = dfi.Calendar;
+            var weekNumber = Weeks.GetWeek(dateTime, culture);
+            int tryYear    = dateTime.Year;
+            
             
 
-            var weekNo = cal.GetWeekOfYear(dateTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
-            var week   = Weeks.GetWeekFromWeekNumber(dateTime.Year, weekNo);
-            return week;
+            var res = Weeks.GetStartAndEndDateTimeFromWeekNumberWithNoThroException(dateTime.Year, weekNumber, true, culture);
+            if (res.Start.HasValue && res.End.HasValue)
+            {
+                return new Week(weekNumber, dateTime.Year, res.Start.GetValueOrDefault(),
+                                res.End.GetValueOrDefault());
+
+            }
+
+            int minYear = tryYear - 1;
+            res = Weeks.GetStartAndEndDateTimeFromWeekNumberWithNoThroException(minYear, weekNumber, true, culture);
+            if (res.Start.HasValue && res.End.HasValue)
+            {
+                return new Week(weekNumber, minYear, res.Start.GetValueOrDefault(),
+                                res.End.GetValueOrDefault());
+            }
+
+            int maxYear = tryYear + 1;
+            res = Weeks.GetStartAndEndDateTimeFromWeekNumberWithNoThroException(maxYear, weekNumber, true,
+                                                                                culture);
+            return new Week(weekNumber, maxYear, res.Start.GetValueOrDefault(), res.End.GetValueOrDefault());
+
+
         }
 
         public int CompareTo(Week other)
@@ -150,6 +202,83 @@ namespace PH.DateTimeUtils
             }
 
             return _year.CompareTo(other._year);
+        }
+
+        /// <summary>
+        /// Implements the operator ==.
+        /// </summary>
+        /// <param name="t1">The t1.</param>
+        /// <param name="t2">The t2.</param>
+        /// <returns>
+        /// The result of the operator.
+        /// </returns>
+        public static bool operator ==(Week t1, Week t2) => t1.Equals(t2);
+
+
+        public static bool operator !=(Week t1, Week t2) => !t1.Equals(t2);
+        
+        
+        public static bool operator <(Week t1, Week t2)
+        {
+            if (t1.Year < t2.Year)
+            {
+                return true;
+            }
+
+            if (t1.Year > t2.Year)
+            {
+                return false;
+            }
+
+            if (t1.Number < t2.Number)
+            {
+                return true;
+            }
+
+            return false;
+           
+
+        }
+
+        public static bool operator >(Week t1, Week t2)
+        {
+            if (t1.Year > t2.Year)
+            {
+                return true;
+            }
+
+            if (t1.Year < t2.Year)
+            {
+                return false;
+            }
+
+            if (t1.Number > t2.Number)
+            {
+                return true;
+            }
+
+            return false;
+
+        }
+
+        public static bool operator <=(Week t1, Week t2)
+        {
+            if (t1 == t2)
+            {
+                return true;
+            }
+
+            return t1 < t2;
+        }
+
+        public static bool operator >=(Week t1, Week t2)
+        {
+            if (t1 == t2)
+            {
+                return true;
+            }
+
+            return t1 > t2;
         }
     }
 }
